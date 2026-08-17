@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🫐 피코 LED 시뮬레이터</title>
+<title>🫐 피코 시뮬레이터</title>
 <style>
   :root {
     --bg: #f4f5fb;
@@ -13,12 +13,6 @@
     --muted: #6b7186;
     --accent: #6d5bd0;
     --accent-dark: #5645b5;
-    --board: #2f6b4f;
-    --board-dark: #234f3a;
-    --pin: #cbd2e6;
-    --pin-hover: #a9b2d6;
-    --led-off: #6b6f7d;
-    --led-on: #ffce45;
     --danger: #d84f4f;
     --ok: #2fa66a;
     --console-bg: #171a24;
@@ -37,6 +31,31 @@
   }
   header.app-header h1 { margin: 0; font-size: 1.6rem; }
   header.app-header p { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+
+  /* stage tabs */
+  .stage-tabs {
+    max-width: 1300px;
+    margin: 0 auto 10px;
+    padding: 0 14px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .stage-tab {
+    flex: 1;
+    min-width: 150px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-align: center;
+  }
+  .stage-tab.active { background: var(--accent); border-color: var(--accent-dark); color: #fff; }
+  .stage-tab:hover:not(.active) { background: #f1f0ff; }
 
   main.workspace {
     display: grid;
@@ -57,7 +76,7 @@
     padding: 12px;
     display: flex;
     flex-direction: column;
-    min-height: 380px;
+    min-height: 560px;
   }
   section.panel h2 {
     margin: 0 0 10px;
@@ -72,25 +91,22 @@
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    padding: 12px 8px;
+    padding: 10px 8px;
     border: 1px dashed var(--border);
     border-radius: 10px;
     cursor: grab;
     user-select: none;
     touch-action: none;
     background: #faf9ff;
+    margin-bottom: 8px;
   }
   .palette-item:active { cursor: grabbing; }
-  .palette-item.disabled { opacity: 0.4; cursor: not-allowed; }
-  .palette-led-svg { width: 34px; height: 44px; overflow: visible; }
-  .palette-led-svg .p-leg { stroke: #a9aebd; stroke-width: 3; stroke-linecap: round; }
-  .palette-led-svg .p-base { fill: #9a9ba3; }
-  .palette-led-svg .p-dome { fill: url(#ledGradOff); stroke: #6b1f1f; stroke-width: 1.5; }
+  .palette-icon-svg { width: 34px; height: 40px; overflow: visible; }
   .privacy-note {
     font-size: 0.72rem;
     color: var(--danger);
     line-height: 1.4;
-    padding-top: 10px;
+    padding-top: 6px;
     margin-bottom: 4px;
   }
 
@@ -102,36 +118,17 @@
     padding: 10px;
     margin-bottom: 12px;
   }
-  .mission-title {
-    font-weight: 700;
-    color: #a5690a;
-    margin-bottom: 4px;
-    font-size: 0.82rem;
-  }
-  .mission-text {
-    font-size: 0.74rem;
-    color: #6b5a2a;
-    line-height: 1.55;
-    margin: 0;
-  }
-  .blocks-heading {
-    margin: 14px 0 8px;
-    font-size: 0.82rem;
-    color: var(--muted);
-    font-weight: 600;
-  }
-  .code-blocks {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
+  .mission-title { font-weight: 700; color: #a5690a; margin-bottom: 4px; font-size: 0.82rem; }
+  .mission-text { font-size: 0.74rem; color: #6b5a2a; line-height: 1.55; margin: 0; }
+  .blocks-heading { margin: 14px 0 8px; font-size: 0.82rem; color: var(--muted); font-weight: 600; }
+  .code-blocks { display: flex; flex-direction: column; gap: 6px; }
   .code-block {
     padding: 7px 10px;
     border-radius: 8px;
     background: #eef0ff;
     border: 1px solid #cfd3f5;
     font-family: "Consolas", monospace;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: #3d3a6b;
     cursor: grab;
     user-select: none;
@@ -149,36 +146,20 @@
     background-size: 16px 16px;
     border-radius: 10px;
     overflow: hidden;
-    min-height: 340px;
+    min-height: 640px;
   }
-  #boardCanvas.drop-hover { outline: 2px dashed var(--accent); outline-offset: -4px; }
   #wireLayer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
 
   /* ---- realistic Pico WH board ---- */
-  .pico-board-wrap {
-    position: absolute;
-    left: 50%;
-    bottom: 10px;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: stretch;
-  }
-  .pico-pins-col {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 22px 0;
-    z-index: 2;
-  }
+  .pico-board-wrap { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); display: flex; align-items: stretch; }
+  .pico-board { cursor: grab; }
+  .pico-board:active { cursor: grabbing; }
+  .pico-pins-col { display: flex; flex-direction: column; justify-content: space-between; padding: 18px 0; z-index: 2; }
   .pico-pins-col.left { margin-right: -7px; }
   .pico-pins-col.right { margin-left: -7px; }
-  .pin-wrap { display: flex; align-items: center; gap: 3px; height: 15px; }
+  .pin-wrap { display: flex; align-items: center; gap: 3px; height: 13px; }
   .pico-pins-col.right .pin-wrap { flex-direction: row-reverse; }
-  .pin-label {
-    font-size: 0.5rem;
-    color: var(--muted);
-    white-space: nowrap;
-  }
+  .pin-label { font-size: 0.46rem; color: var(--muted); white-space: nowrap; }
   .pin {
     width: 12px; height: 12px;
     border-radius: 50%;
@@ -195,137 +176,121 @@
   .pico-board {
     position: relative;
     width: 172px;
-    background: linear-gradient(160deg, #1f8a53, #185f3c);
-    border: 2px solid #123f28;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 8px),
+      linear-gradient(160deg, #1c7d4c, #124327);
+    border: 2px solid #0e3520;
     border-radius: 6px;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
     padding: 10px 8px;
   }
   .pico-hole {
-    position: absolute;
-    width: 9px; height: 9px;
-    border-radius: 50%;
-    background: radial-gradient(#f6dd8a, #b8891f);
-    border: 1px solid #7a5a12;
+    position: absolute; width: 8px; height: 8px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #fafafa, #cfd2d8 55%, #8d939e);
+    border: 1px solid #5b616c;
   }
   .pico-hole.tl { top: 6px; left: 6px; }
   .pico-hole.tr { top: 6px; right: 6px; }
   .pico-hole.bl { bottom: 6px; left: 6px; }
   .pico-hole.br { bottom: 6px; right: 6px; }
   .pico-usb {
-    width: 34px; height: 22px;
-    background: #c7cbd6;
-    border: 1px solid #8b8f9c;
-    border-radius: 2px;
-    margin: 4px auto 6px;
+    position: relative; width: 34px; height: 24px;
+    background: linear-gradient(#3d3e44, #131316);
+    border: 1px solid #050506; border-radius: 3px; margin: 4px auto 6px;
+  }
+  .pico-usb::after {
+    content: ""; position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px;
+    background: linear-gradient(#d3d7e0, #9aa0ab); border-radius: 1px;
   }
   .pico-chip {
     width: 46px; height: 46px;
-    background: #1c1d22;
-    border-radius: 3px;
-    margin: 6px auto;
+    background: linear-gradient(155deg, #2b2c31, #0a0a0b);
+    border-radius: 3px; margin: 8px auto 6px;
     display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.4);
   }
-  .pico-chip-logo { width: 20px; height: 20px; opacity: 0.85; }
+  .pico-chip-logo { width: 20px; height: 20px; opacity: 0.9; }
+  .pico-row { display: flex; align-items: flex-end; justify-content: center; gap: 10px; margin: 6px auto 2px; }
   .pico-boot {
-    width: 16px; height: 16px;
-    background: #f4f2ea;
-    border: 1px solid #999;
-    border-radius: 2px;
-    margin: 8px auto 4px;
+    width: 15px; height: 15px;
+    background: linear-gradient(#fbfaf2, #ddd8c4);
+    border: 1px solid #9b9680; border-radius: 2px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.35);
+  }
+  .pico-debug { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .pico-debug-label { font-size: 0.38rem; color: rgba(255,255,255,0.5); letter-spacing: 0.5px; }
+  .pico-debug-pins { display: flex; gap: 2px; }
+  .pico-debug-pins span {
+    width: 5px; height: 8px;
+    background: linear-gradient(#f5d992, #c9982f);
+    border: 1px solid #8a6a1c; border-radius: 1px; display: block;
   }
   .pico-wifi {
-    width: 74px; height: 26px;
-    background: #cfd3dd;
-    border-radius: 3px;
-    margin: 8px auto 4px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.55rem;
-    font-weight: 700;
-    color: #4a4d58;
-    letter-spacing: 0.5px;
+    position: relative; width: 58px; height: 44px;
+    background: linear-gradient(135deg, #eef0f4, #b7bcc6 55%, #8a90a0);
+    border: 1px solid #63697a; border-radius: 2px; margin: 6px auto 2px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.35);
   }
+  .pico-wifi::before, .pico-wifi::after { content: ""; position: absolute; top: 3px; bottom: 3px; width: 1px; background: rgba(0,0,0,0.15); }
+  .pico-wifi::before { left: 33%; }
+  .pico-wifi::after { left: 66%; }
+  .pico-wifi-label { text-align: center; font-size: 0.42rem; color: rgba(255,255,255,0.5); letter-spacing: 0.5px; margin-top: 2px; }
   .pico-title {
-    position: absolute;
-    top: 50%; left: 3px;
-    transform: translateY(-50%) rotate(180deg);
-    writing-mode: vertical-rl;
-    font-size: 0.5rem;
-    color: rgba(255,255,255,0.55);
-    letter-spacing: 1px;
-    font-weight: 600;
+    position: absolute; top: 50%; left: 3px; transform: translateY(-50%) rotate(180deg);
+    writing-mode: vertical-rl; font-size: 0.5rem; color: rgba(255,255,255,0.55); letter-spacing: 1px; font-weight: 600;
   }
 
-  /* ---- realistic LED component ---- */
-  .led-component {
-    position: absolute;
-    touch-action: none;
-    z-index: 3;
+  /* ---- placed components (LED / button / buzzer) ---- */
+  .component { position: absolute; touch-action: none; z-index: 3; }
+  .comp-svg { cursor: default; touch-action: none; transform-origin: 50% 50%; }
+  .comp-svg.movable { cursor: grab; }
+  .comp-svg.movable:active { cursor: grabbing; }
+  .comp-svg .led-dome { fill: url(#ledGradOff); stroke: #6b1f1f; stroke-width: 1.5; transition: fill 0.1s; }
+  .led-component.on .comp-svg .led-dome { fill: url(#ledGradOn); filter: drop-shadow(0 0 8px rgba(255,90,40,0.95)) drop-shadow(0 0 16px rgba(255,150,40,0.6)); }
+  .comp-svg .led-base { fill: #9a9ba3; }
+  .comp-svg .part-leg { stroke: #a9aebd; stroke-width: 3; stroke-linecap: round; }
+  .comp-svg .terminal-hit { fill: rgba(109,91,208,0.15); stroke: var(--accent); stroke-width: 2; cursor: crosshair; }
+  .comp-svg .terminal-hit:hover { fill: rgba(109,91,208,0.35); }
+  .comp-svg .terminal-hit.connected { fill: var(--ok); stroke: #1f7a4c; }
+  .comp-svg .terminal-text { font-size: 6px; fill: var(--muted); text-anchor: middle; }
+  .rotate-btn {
+    position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; border-radius: 50%;
+    border: 1px solid var(--accent-dark); background: #fff; color: var(--accent);
+    font-size: 0.75rem; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; padding: 0; z-index: 4;
   }
-  .led-svg { cursor: grab; touch-action: none; transform-origin: 50% 50%; }
-  .led-svg:active { cursor: grabbing; }
-  .led-svg .led-dome { fill: url(#ledGradOff); stroke: #6b1f1f; stroke-width: 1.5; transition: fill 0.1s; }
-  .led-component.on .led-svg .led-dome { fill: url(#ledGradOn); filter: drop-shadow(0 0 8px rgba(255,90,40,0.95)) drop-shadow(0 0 16px rgba(255,150,40,0.6)); }
-  .led-svg .led-base { fill: #9a9ba3; }
-  .led-svg .led-leg { stroke: #a9aebd; stroke-width: 3; stroke-linecap: round; }
-  .led-svg .terminal-hit { fill: rgba(109,91,208,0.15); stroke: var(--accent); stroke-width: 2; cursor: crosshair; }
-  .led-svg .terminal-hit:hover { fill: rgba(109,91,208,0.35); }
-  .led-svg .terminal-hit.connected { fill: var(--ok); stroke: #1f7a4c; }
-  .led-svg .terminal-text { font-size: 6px; fill: var(--muted); text-anchor: middle; }
-  .led-rotate-btn {
-    position: absolute;
-    top: -8px; right: -8px;
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    border: 1px solid var(--accent-dark);
-    background: #fff;
-    color: var(--accent);
-    font-size: 0.75rem;
-    line-height: 1;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0;
-    z-index: 4;
-  }
-  .led-rotate-btn:hover { background: var(--accent); color: #fff; }
+  .rotate-btn:hover { background: var(--accent); color: #fff; }
+
+  .comp-svg .btn-corner-leg { stroke: #9aa0ab; stroke-width: 2; stroke-linecap: round; }
+  .comp-svg .btn-housing { fill: #45484f; stroke: #24262b; stroke-width: 1.5; }
+  .comp-svg .btn-housing-top { fill: rgba(255,255,255,0.14); pointer-events: none; }
+  .comp-svg .btn-cap { fill: url(#btnCapGrad); stroke: #14591f; stroke-width: 1.5; cursor: pointer; transition: transform 0.08s; transform-box: fill-box; transform-origin: center; }
+  .comp-svg .btn-cap.pressed { fill: url(#btnCapGradPressed); transform: scale(0.88); }
+  .comp-svg .btn-cap-shine { fill: rgba(255,255,255,0.4); pointer-events: none; }
+
+  .comp-svg .buzzer-rim { fill: #d5d9e1; stroke: #7d8290; stroke-width: 1; }
+  .comp-svg .buzzer-body { fill: url(#buzzerGrad); stroke: #050505; stroke-width: 1.5; transition: filter 0.1s; }
+  .comp-svg .buzzer-body.buzzing { filter: drop-shadow(0 0 6px rgba(255,205,60,0.95)); }
+  .comp-svg .buzzer-hole { fill: rgba(0,0,0,0.55); }
+  .comp-svg .buzzer-plus { font-size: 9px; fill: rgba(255,255,255,0.55); text-anchor: middle; pointer-events: none; }
 
   /* code editor */
   #codeEditor {
-    flex: 1;
-    width: 100%;
-    resize: none;
+    flex: 1; width: 100%; resize: none;
     font-family: "Consolas", "SFMono-Regular", Menlo, monospace;
-    font-size: 0.85rem;
-    line-height: 1.5;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: #fbfbff;
-    color: var(--text);
+    font-size: 0.85rem; line-height: 1.5; padding: 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: #fbfbff; color: var(--text);
   }
-  .hint {
-    font-size: 0.72rem;
-    color: var(--muted);
-    margin: 6px 0 0;
-  }
+  .hint { font-size: 0.7rem; color: var(--muted); margin: 6px 0 0; }
 
   /* toolbar */
   .toolbar {
-    max-width: 1300px;
-    margin: 12px auto 0;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    max-width: 1300px; margin: 12px auto 0; padding: 10px 14px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   }
   .toolbar button {
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--panel);
-    font-size: 0.9rem;
-    cursor: pointer;
+    padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--panel); font-size: 0.9rem; cursor: pointer;
   }
   .toolbar button:hover { background: #f1f0ff; }
   #runBtn { background: var(--accent); color: #fff; border-color: var(--accent-dark); }
@@ -334,84 +299,32 @@
   #gradeBtn { border-color: var(--ok); color: #17583a; font-weight: 600; }
   #gradeBtn:hover { background: #eafbf1; }
   #statusLabel {
-    margin-left: auto;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--muted);
-    padding: 6px 10px;
-    border-radius: 6px;
-    background: #eef0fa;
+    margin-left: auto; font-size: 0.85rem; font-weight: 600; color: var(--muted);
+    padding: 6px 10px; border-radius: 6px; background: #eef0fa;
   }
   #statusLabel.running { color: #fff; background: var(--ok); }
   #statusLabel.error { color: #fff; background: var(--danger); }
 
-  .nickname-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.8rem;
-    color: var(--muted);
-  }
-  .nickname-row input {
-    padding: 6px 8px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    width: 140px;
-    font-size: 0.8rem;
-  }
+  .nickname-row { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
+  .nickname-row input { padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); width: 140px; font-size: 0.8rem; }
 
-  #shareBanner {
-    max-width: 1300px;
-    margin: 0 auto 10px;
-    padding: 0 14px;
-  }
+  #shareBanner { max-width: 1300px; margin: 0 auto 10px; padding: 0 14px; }
   #shareBanner .inner {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    background: #eafbf1;
-    border: 1px solid var(--ok);
-    color: #17583a;
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-size: 0.85rem;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: #eafbf1; border: 1px solid var(--ok); color: #17583a;
+    padding: 10px 14px; border-radius: 8px; font-size: 0.85rem;
   }
-  #shareBanner input {
-    flex: 1;
-    min-width: 200px;
-    padding: 6px 8px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    font-size: 0.8rem;
-  }
-  #shareBanner button {
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid var(--ok);
-    background: #fff;
-    cursor: pointer;
-    font-size: 0.8rem;
-  }
+  #shareBanner input { flex: 1; min-width: 200px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.8rem; }
+  #shareBanner button { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--ok); background: #fff; cursor: pointer; font-size: 0.8rem; }
   #shareBanner.hidden { display: none; }
 
   /* console */
-  .console-panel {
-    max-width: 1300px;
-    margin: 0 auto 20px;
-    padding: 0 14px;
-  }
+  .console-panel { max-width: 1300px; margin: 0 auto 20px; padding: 0 14px; }
   .console-panel h2 { font-size: 0.85rem; color: var(--muted); margin: 4px 0 6px; }
   #consoleOutput {
-    background: var(--console-bg);
-    color: var(--console-text);
-    font-family: "Consolas", monospace;
-    font-size: 0.82rem;
-    border-radius: 10px;
-    padding: 10px 12px;
-    height: 130px;
-    overflow-y: auto;
-    line-height: 1.5;
+    background: var(--console-bg); color: var(--console-text);
+    font-family: "Consolas", monospace; font-size: 0.82rem;
+    border-radius: 10px; padding: 10px 12px; height: 130px; overflow-y: auto; line-height: 1.5;
   }
   #consoleOutput .err { color: #ff8b8b; }
   #consoleOutput .ok { color: #7dffb0; }
@@ -421,56 +334,30 @@
   .wire-drag { fill: none; stroke: #6d5bd0; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 5,4; }
 
   /* modal */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(20, 20, 30, 0.55);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 50;
-  }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(20, 20, 30, 0.55); display: flex; align-items: center; justify-content: center; z-index: 50; }
   .modal-overlay.hidden { display: none; }
-  .modal-box {
-    background: #fff;
-    border-radius: 12px;
-    padding: 26px 30px;
-    max-width: 380px;
-    text-align: center;
-  }
+  .modal-box { background: #fff; border-radius: 12px; padding: 26px 30px; max-width: 380px; text-align: center; }
   .modal-box p { color: var(--muted); line-height: 1.6; white-space: pre-line; }
-  .modal-box button {
-    margin-top: 14px;
-    padding: 9px 18px;
-    border-radius: 8px;
-    border: none;
-    background: var(--accent);
-    color: #fff;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
+  .modal-box button { margin-top: 14px; padding: 9px 18px; border-radius: 8px; border: none; background: var(--accent); color: #fff; cursor: pointer; font-size: 0.9rem; }
 </style>
 </head>
 <body>
 
 <header class="app-header">
-  <h1>🫐 피코 LED 시뮬레이터</h1>
+  <h1>🫐 피코 시뮬레이터</h1>
   <p>선을 연결하고 Python으로 제어하기</p>
 </header>
+
+<div class="stage-tabs" id="stageTabs"></div>
 
 <main class="workspace">
   <section class="panel" id="palettePanel">
     <h2>부품</h2>
     <div class="mission-box">
       <div class="mission-title">🎯 오늘의 미션</div>
-      <p class="mission-text">LED의 신호선을 <b>GP15</b>에, GND선을 <b>GND</b>에 연결하세요.<br>그리고 LED가 1초 간격으로 깜빡이도록 코드를 완성한 뒤 <b>[▶ 실행]</b>을 눌러보세요!</p>
+      <p class="mission-text" id="missionText"></p>
     </div>
-    <div class="palette-item" id="paletteLed">
-      <svg class="palette-led-svg" viewBox="0 0 56 60">
-        <line class="p-leg" x1="18" y1="38" x2="14" y2="56"/>
-        <line class="p-leg" x1="38" y1="38" x2="42" y2="56"/>
-        <rect class="p-base" x="8" y="30" width="40" height="10" rx="2"/>
-        <path class="p-dome" d="M8,32 L8,20 A20,20 0 0 1 48,20 L48,32 Z"/>
-      </svg>
-      <span>LED</span>
-    </div>
+    <div id="paletteComponents"></div>
     <p class="privacy-note">개인정보 보호를 위해 이름·학급·학번을 입력하지 마세요.</p>
     <h2 class="blocks-heading">🧩 코드 블록 (드래그해서 추가)</h2>
     <div class="code-blocks" id="codeBlocks"></div>
@@ -490,9 +377,21 @@
             <stop offset="55%" stop-color="#ff5a3c"/>
             <stop offset="100%" stop-color="#c21818"/>
           </radialGradient>
+          <radialGradient id="btnCapGrad" cx="35%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#8fef9c"/>
+            <stop offset="100%" stop-color="#1f8a3d"/>
+          </radialGradient>
+          <radialGradient id="btnCapGradPressed" cx="35%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#5cb86e"/>
+            <stop offset="100%" stop-color="#145a20"/>
+          </radialGradient>
+          <radialGradient id="buzzerGrad" cx="35%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#5a5d68"/>
+            <stop offset="100%" stop-color="#16171b"/>
+          </radialGradient>
         </defs>
       </svg>
-      <div class="pico-board-wrap">
+      <div class="pico-board-wrap" id="picoBoardWrap">
         <div class="pico-pins-col left" id="pinColLeft"></div>
         <div class="pico-board" id="picoBoard">
           <div class="pico-hole tl"></div>
@@ -501,11 +400,18 @@
           <div class="pico-hole br"></div>
           <div class="pico-title">Raspberry Pi Pico WH</div>
           <div class="pico-usb"></div>
-          <div class="pico-boot"></div>
+          <div class="pico-row">
+            <div class="pico-boot" title="BOOTSEL"></div>
+            <div class="pico-debug">
+              <div class="pico-debug-pins"><span></span><span></span><span></span></div>
+              <div class="pico-debug-label">DEBUG</div>
+            </div>
+          </div>
           <div class="pico-chip">
             <svg class="pico-chip-logo" viewBox="0 0 24 24"><circle cx="8" cy="8" r="5" fill="#c62828"/><circle cx="16" cy="8" r="5" fill="#c62828"/><circle cx="12" cy="16" r="5" fill="#c62828"/></svg>
           </div>
-          <div class="pico-wifi">Wi‑Fi</div>
+          <div class="pico-wifi"></div>
+          <div class="pico-wifi-label">Wi‑Fi 모듈</div>
         </div>
         <div class="pico-pins-col right" id="pinColRight"></div>
       </div>
@@ -515,7 +421,7 @@
   <section class="panel">
     <h2>코드 에디터</h2>
     <textarea id="codeEditor" spellcheck="false"></textarea>
-    <p class="hint">지원 명령: Pin(15, Pin.OUT) · led.toggle() · sleep(초) · while True · #설명(주석)</p>
+    <p class="hint" id="hintText"></p>
   </section>
 </main>
 
@@ -556,39 +462,138 @@
 (function () {
   "use strict";
 
-  var DEFAULT_CODE = [
-    "# 🧩 여기에 LED를 켜고 끄는 코드를 만들어보세요.",
-    "# 왼쪽의 코드 블록을 드래그하거나, 직접 타이핑해도 돼요.",
-    "#",
-    "# 순서: 1) Pin 선언   2) while True:   3) 불 켜고 끄기 + 대기",
-    "#",
-    "# 💡 '#'으로 시작하는 줄은 '주석'이에요.",
-    "#    컴퓨터는 이 줄을 실행하지 않고, 사람이 읽는 설명으로만 써요.",
-    "#    예) # LED를 1초마다 깜빡이게 해요",
-    "",
-    ""
-  ].join("\n");
+  // ================= stage configuration =================
+  var COMPONENT_LABEL = { led: "LED", button: "버튼", buzzer: "부저" };
+  var COMPONENT_PIN = { led: 15, button: 14, buzzer: 16 };
 
-  var LEFT_PINS = ["GP0", "GP1", "GND", "GP2", "GP3", "GND", "GP4", "GP5", "GND", "GP6"];
-  var RIGHT_PINS = ["VBUS", "VSYS", "GND", "3V3", "GP28", "GND", "GP16", "GP15", "GND", "GP14"];
-
-  var CODE_BLOCKS = [
-    { label: "Pin 선언", code: "led = Pin(15, Pin.OUT)" },
-    { label: "반복 시작 (while)", code: "while True:" },
-    { label: "불 켜고 끄기", code: "    led.toggle()" },
-    { label: "0.5초 대기", code: "    sleep(0.5)" },
-    { label: "1초 대기", code: "    sleep(1)" },
-    { label: "2초 대기", code: "    sleep(2)" },
-    { label: "설명 쓰기 (#)", code: "# 여기에 설명을 적어보세요" }
+  var STAGES = [
+    {
+      id: 1,
+      title: "1단계: LED 깜빡이기",
+      mission: "LED의 신호선을 <b>GP15</b>에, GND선을 <b>GND</b>에 연결하세요.<br>그리고 LED가 1초 간격으로 깜빡이도록 코드를 완성한 뒤 <b>[▶ 실행]</b>을 눌러보세요!",
+      components: ["led"],
+      requiredWiring: [
+        { type: "led", terminal: "signal", pin: "GP15" },
+        { type: "led", terminal: "gnd", pin: "GND" }
+      ],
+      requireSleep: true,
+      hintText: "지원 명령: import machine · import time · Pin(15, Pin.OUT) · led.toggle() · sleep(초) · while True · #설명(주석)",
+      defaultCode: [
+        "# 🧩 1단계: LED를 켜고 끄는 코드를 만들어보세요.",
+        "# 왼쪽의 코드 블록을 드래그하거나, 직접 타이핑해도 돼요.",
+        "#",
+        "# 순서: 1) import 불러오기  2) Pin 선언  3) while True:  4) 켜고 끄기 + 대기",
+        "#",
+        "# 💡 '#'으로 시작하는 줄은 '주석'이에요. 컴퓨터는 실행하지 않고 사람만 읽어요.",
+        "",
+        ""
+      ].join("\n"),
+      codeBlocks: [
+        { label: "machine 불러오기", code: "import machine" },
+        { label: "time 불러오기", code: "import time" },
+        { label: "Pin 선언", code: "led = Pin(15, Pin.OUT)" },
+        { label: "반복 시작 (while)", code: "while True:" },
+        { label: "불 켜고 끄기", code: "    led.toggle()" },
+        { label: "0.5초 대기", code: "    sleep(0.5)" },
+        { label: "1초 대기", code: "    sleep(1)" },
+        { label: "2초 대기", code: "    sleep(2)" },
+        { label: "설명 쓰기 (#)", code: "# 여기에 설명을 적어보세요" }
+      ],
+      buildChecks: function (code) { return gradeStage1(code); }
+    },
+    {
+      id: 2,
+      title: "2단계: 버튼 입력받기",
+      mission: "LED는 <b>GP15/GND</b>에, 버튼은 <b>GP14/GND</b>에 연결하세요.<br>버튼을 누르고 있는 동안 LED가 켜지도록 코드를 완성해보세요!<br>보드 위 버튼을 클릭(누른 채 유지)해서 테스트할 수 있어요.",
+      components: ["led", "button"],
+      requiredWiring: [
+        { type: "led", terminal: "signal", pin: "GP15" },
+        { type: "led", terminal: "gnd", pin: "GND" },
+        { type: "button", terminal: "signal", pin: "GP14" },
+        { type: "button", terminal: "gnd", pin: "GND" }
+      ],
+      requireSleep: false,
+      hintText: "지원 명령: Pin(14, Pin.IN, Pin.PULL_UP) · button.value() · if / else · led.on() / led.off() · while True · #설명(주석)",
+      defaultCode: [
+        "# 🧩 2단계: 버튼을 누르면 LED가 켜지는 코드를 만들어보세요.",
+        "#",
+        "# 순서: 1) import 불러오기  2) LED/버튼 Pin 선언",
+        "#      3) while True:  4) if 버튼.value() == 0: 안에서 LED 켜고, else: 에서 끄기",
+        "#",
+        "# 💡 button.value()는 버튼을 누르면 0, 누르지 않으면 1이에요.",
+        "",
+        ""
+      ].join("\n"),
+      codeBlocks: [
+        { label: "machine 불러오기", code: "import machine" },
+        { label: "time 불러오기", code: "import time" },
+        { label: "LED Pin 선언", code: "led = Pin(15, Pin.OUT)" },
+        { label: "버튼 Pin 선언", code: "button = Pin(14, Pin.IN, Pin.PULL_UP)" },
+        { label: "반복 시작 (while)", code: "while True:" },
+        { label: "버튼 눌림 확인 (if)", code: "    if button.value() == 0:" },
+        { label: "LED 켜기", code: "        led.on()" },
+        { label: "그 외 (else)", code: "    else:" },
+        { label: "LED 끄기", code: "        led.off()" },
+        { label: "설명 쓰기 (#)", code: "# 여기에 설명을 적어보세요" }
+      ],
+      buildChecks: function (code) { return gradeStage2(code); }
+    },
+    {
+      id: 3,
+      title: "3단계: 부저로 멜로디 만들기",
+      mission: "부저를 <b>GP16/GND</b>에 연결하세요.<br><b>buzzer.on()</b> / <b>buzzer.off()</b>와 <b>sleep()</b>을 조합해서 나만의 리듬(멜로디)을 만들어보세요! 🔊",
+      components: ["buzzer"],
+      requiredWiring: [
+        { type: "buzzer", terminal: "signal", pin: "GP16" },
+        { type: "buzzer", terminal: "gnd", pin: "GND" }
+      ],
+      requireSleep: true,
+      hintText: "지원 명령: import machine · import time · Pin(16, Pin.OUT) · buzzer.on() / buzzer.off() · sleep(초) · while True · #설명(주석)",
+      defaultCode: [
+        "# 🧩 3단계: 부저로 나만의 리듬(멜로디)을 만들어보세요.",
+        "#",
+        "# 순서: 1) import 불러오기  2) 부저 Pin 선언",
+        "#      3) while True:  4) buzzer.on()/off()와 sleep()을 자유롭게 조합해보기",
+        "#",
+        "# 💡 sleep() 시간을 다르게 하면 리듬이 달라져요. 자유롭게 실험해보세요!",
+        "",
+        ""
+      ].join("\n"),
+      codeBlocks: [
+        { label: "machine 불러오기", code: "import machine" },
+        { label: "time 불러오기", code: "import time" },
+        { label: "부저 Pin 선언", code: "buzzer = Pin(16, Pin.OUT)" },
+        { label: "반복 시작 (while)", code: "while True:" },
+        { label: "부저 켜기", code: "    buzzer.on()" },
+        { label: "부저 끄기", code: "    buzzer.off()" },
+        { label: "0.1초 대기", code: "    sleep(0.1)" },
+        { label: "0.2초 대기", code: "    sleep(0.2)" },
+        { label: "0.5초 대기", code: "    sleep(0.5)" },
+        { label: "설명 쓰기 (#)", code: "# 여기에 설명을 적어보세요" }
+      ],
+      buildChecks: function (code) { return gradeStage3(code); }
+    }
   ];
 
+  // Full 40-pin Pico WH layout (20 per side) so every real pin is visible on the board.
+  var LEFT_PINS = ["GP0", "GP1", "GND", "GP2", "GP3", "GND", "GP4", "GP5", "GND", "GP6", "GP7", "GND", "GP8", "GP9", "GND", "GP10", "GP11", "GND", "GP12", "GP13"];
+  var RIGHT_PINS = ["VBUS", "VSYS", "GND", "3V3_EN", "3V3", "ADC_VREF", "GP28", "GP27", "GP26", "RUN", "GP22", "GP21", "GP20", "GP19", "GP18", "GP17", "GND", "GP16", "GP15", "GP14"];
+
+  // default drop positions per component type, spaced so stage 2 (led+button) doesn't overlap
+  var DEFAULT_POS = { led: { x: 250, y: 30 }, button: { x: 380, y: 30 }, buzzer: { x: 300, y: 30 } };
+
   // ---------- DOM refs ----------
+  var stageTabsEl = document.getElementById("stageTabs");
+  var missionTextEl = document.getElementById("missionText");
+  var hintTextEl = document.getElementById("hintText");
+  var paletteComponentsEl = document.getElementById("paletteComponents");
   var boardCanvas = document.getElementById("boardCanvas");
   var wireLayer = document.getElementById("wireLayer");
+  var picoBoardWrap = document.getElementById("picoBoardWrap");
+  var picoBoard = document.getElementById("picoBoard");
   var pinColLeft = document.getElementById("pinColLeft");
   var pinColRight = document.getElementById("pinColRight");
   var codeBlocksContainer = document.getElementById("codeBlocks");
-  var paletteLed = document.getElementById("paletteLed");
   var codeEditor = document.getElementById("codeEditor");
   var runBtn = document.getElementById("runBtn");
   var stopBtn = document.getElementById("stopBtn");
@@ -606,17 +611,18 @@
   var restartBtn = document.getElementById("restartBtn");
 
   // ---------- state ----------
-  var ledEl = null;          // placed LED component element
-  var circuit = { signal: null, gnd: null }; // pin ids currently wired
+  var currentStageIndex = 0;
+  var currentStage = STAGES[0];
+  var placed = {};           // type -> { el, svg, wires:{signal,gnd}, rotation }
+  var pinEls = {};           // pin label -> [elements]
+  var dragWire = null;       // { fromEl, terminalType, componentType, line, start }
   var execTimer = null;
   var isRunning = false;
-  var dragWire = null;       // { fromEl, terminalType, line }
-  var pinEls = {};           // pinId(non-unique label) -> [elements]
-  var wires = { signal: null, gnd: null }; // { termEl, pinEl, path } per terminal, kept live for redraw
-  var ledRotation = 0;
+  var buttonPressed = false;
+  var pinOutputState = {};   // pin number -> bool
+  var lastCursorPos = null;  // last known caret position in codeEditor, for block-drop insertion
 
   // Some environments only synthesize mouse events (no PointerEvent).
-  // Detect real pointerdown support per-interaction so we don't double-fire in normal browsers.
   var pointerCapable = false;
   document.addEventListener("pointerdown", function () { pointerCapable = true; }, true);
 
@@ -624,6 +630,8 @@
     el.addEventListener("pointerdown", function (e) { onStart(e, true); });
     el.addEventListener("mousedown", function (e) { if (pointerCapable) return; onStart(e, false); });
   }
+
+  function escapeRe(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 
   // ================= console =================
   function log(msg, kind) {
@@ -637,7 +645,6 @@
     consoleOutput.innerHTML = "";
     log("실행 준비 완료");
   }
-
   function setStatus(text, mode) {
     statusLabel.textContent = "상태: " + text;
     statusLabel.className = mode ? mode : "";
@@ -648,24 +655,19 @@
     labels.forEach(function (label) {
       var wrap = document.createElement("div");
       wrap.className = "pin-wrap";
-
       var lab = document.createElement("div");
       lab.className = "pin-label";
       lab.textContent = label;
-
       var dot = document.createElement("div");
       dot.className = "pin";
       dot.dataset.pin = label;
-
       wrap.appendChild(lab);
       wrap.appendChild(dot);
       container.appendChild(wrap);
-
       if (!pinEls[label]) pinEls[label] = [];
       pinEls[label].push(dot);
     });
   }
-
   function buildBoard() {
     pinColLeft.innerHTML = "";
     pinColRight.innerHTML = "";
@@ -673,80 +675,231 @@
     buildPinColumn(pinColLeft, LEFT_PINS);
     buildPinColumn(pinColRight, RIGHT_PINS);
   }
+  function clearWires() {
+    Array.from(wireLayer.querySelectorAll("path")).forEach(function (p) { p.remove(); }); // keep <defs>, only drop wire paths
+  }
 
-  // ================= LED placement =================
+  function resetBoardPosition() {
+    picoBoardWrap.style.left = "";
+    picoBoardWrap.style.top = "";
+    picoBoardWrap.style.transform = "";
+  }
+
+  function startBoardMove(e, usePointer) {
+    e.preventDefault();
+    var canvasRect = boardCanvas.getBoundingClientRect();
+    var wrapRect = picoBoardWrap.getBoundingClientRect();
+    var startLeft = wrapRect.left - canvasRect.left;
+    var startTop = wrapRect.top - canvasRect.top;
+    // switch from the centered left:50%/transform default to plain absolute px so dragging is simple math
+    picoBoardWrap.style.transform = "none";
+    picoBoardWrap.style.left = startLeft + "px";
+    picoBoardWrap.style.top = startTop + "px";
+
+    var startX = e.clientX, startY = e.clientY;
+    var moveEvt = usePointer ? "pointermove" : "mousemove";
+    var upEvt = usePointer ? "pointerup" : "mouseup";
+    function onMove(ev) {
+      var rect = boardCanvas.getBoundingClientRect();
+      var newLeft = Math.max(0, Math.min(startLeft + (ev.clientX - startX), rect.width - wrapRect.width));
+      var newTop = Math.max(0, Math.min(startTop + (ev.clientY - startY), rect.height - wrapRect.height));
+      picoBoardWrap.style.left = newLeft + "px";
+      picoBoardWrap.style.top = newTop + "px";
+      redrawWires();
+    }
+    function onUp() {
+      document.removeEventListener(moveEvt, onMove);
+      document.removeEventListener(upEvt, onUp);
+    }
+    document.addEventListener(moveEvt, onMove);
+    document.addEventListener(upEvt, onUp);
+  }
+  bindDragStart(picoBoard, function (e, usePointer) { startBoardMove(e, usePointer); });
+
+  // ================= component SVG builders =================
   var SVG_NS = "http://www.w3.org/2000/svg";
   function svgEl(tag, attrs) {
     var el = document.createElementNS(SVG_NS, tag);
     for (var k in attrs) el.setAttribute(k, attrs[k]);
     return el;
   }
-
-  function placeLed(x, y) {
-    if (ledEl) return; // MVP: LED 1개 제한
-    ledEl = document.createElement("div");
-    ledEl.className = "led-component";
-    ledEl.style.left = x + "px";
-    ledEl.style.top = y + "px";
-
-    var svg = svgEl("svg", { "class": "led-svg", width: 56, height: 86, viewBox: "0 0 56 86" });
-    svg.appendChild(svgEl("line", { "class": "led-leg", x1: 18, y1: 44, x2: 12, y2: 80 }));
-    svg.appendChild(svgEl("line", { "class": "led-leg", x1: 38, y1: 44, x2: 44, y2: 80 }));
-    svg.appendChild(svgEl("rect", { "class": "led-base", x: 8, y: 36, width: 40, height: 10, rx: 2 }));
-    svg.appendChild(svgEl("path", { "class": "led-dome", d: "M8,38 L8,20 A20,20 0 0 1 48,20 L48,38 Z" }));
-
-    var sigDot = svgEl("circle", { "class": "terminal-hit", "data-terminal": "signal", cx: 12, cy: 80, r: 7 });
-    var gndDot = svgEl("circle", { "class": "terminal-hit", "data-terminal": "gnd", cx: 44, cy: 80, r: 7 });
+  function terminalPair(svg, sigXY, gndXY, labelY) {
+    var sigDot = svgEl("circle", { "class": "terminal-hit", "data-terminal": "signal", cx: sigXY[0], cy: sigXY[1], r: 7 });
+    var gndDot = svgEl("circle", { "class": "terminal-hit", "data-terminal": "gnd", cx: gndXY[0], cy: gndXY[1], r: 7 });
     svg.appendChild(sigDot);
     svg.appendChild(gndDot);
-    var sigText = svgEl("text", { "class": "terminal-text", x: 12, y: 12 });
+    var sigText = svgEl("text", { "class": "terminal-text", x: sigXY[0], y: labelY });
     sigText.textContent = "신호";
-    var gndText = svgEl("text", { "class": "terminal-text", x: 44, y: 12 });
+    var gndText = svgEl("text", { "class": "terminal-text", x: gndXY[0], y: labelY });
     gndText.textContent = "GND";
     svg.appendChild(sigText);
     svg.appendChild(gndText);
+    return { sigDot: sigDot, gndDot: gndDot };
+  }
 
+  function buildLedSvg() {
+    var svg = svgEl("svg", { "class": "comp-svg movable", width: 56, height: 86, viewBox: "0 0 56 86" });
+    svg.appendChild(svgEl("line", { "class": "part-leg", x1: 18, y1: 44, x2: 12, y2: 80 }));
+    svg.appendChild(svgEl("line", { "class": "part-leg", x1: 38, y1: 44, x2: 44, y2: 80 }));
+    svg.appendChild(svgEl("rect", { "class": "led-base", x: 8, y: 36, width: 40, height: 10, rx: 2 }));
+    svg.appendChild(svgEl("path", { "class": "led-dome", d: "M8,38 L8,20 A20,20 0 0 1 48,20 L48,38 Z" }));
+    var t = terminalPair(svg, [12, 80], [44, 80], 12);
+    return { svg: svg, sigDot: t.sigDot, gndDot: t.gndDot };
+  }
+
+  function buildButtonSvg() {
+    var svg = svgEl("svg", { "class": "comp-svg movable", width: 56, height: 84, viewBox: "0 0 56 84" });
+    // 4 short corner legs, like a real THT tactile switch (decorative only — the 2 wire legs below carry the actual connections)
+    [[11, 8], [45, 8], [11, 40], [45, 40]].forEach(function (xy) {
+      svg.appendChild(svgEl("line", { "class": "btn-corner-leg", x1: xy[0], y1: xy[1], x2: xy[0], y2: xy[1] + 5 }));
+    });
+    svg.appendChild(svgEl("rect", { "class": "btn-housing", x: 8, y: 8, width: 40, height: 34, rx: 3 }));
+    svg.appendChild(svgEl("rect", { "class": "btn-housing-top", x: 12, y: 11, width: 32, height: 7, rx: 2 }));
+    var cap = svgEl("circle", { "class": "btn-cap", cx: 28, cy: 25, r: 12 });
+    svg.appendChild(cap);
+    svg.appendChild(svgEl("ellipse", { "class": "btn-cap-shine", cx: 24, cy: 20, rx: 3.5, ry: 2 }));
+    svg.appendChild(svgEl("line", { "class": "part-leg", x1: 18, y1: 42, x2: 14, y2: 68 }));
+    svg.appendChild(svgEl("line", { "class": "part-leg", x1: 38, y1: 42, x2: 44, y2: 68 }));
+    var t = terminalPair(svg, [14, 68], [44, 68], 78);
+    return { svg: svg, sigDot: t.sigDot, gndDot: t.gndDot, cap: cap };
+  }
+
+  function buildBuzzerSvg() {
+    var svg = svgEl("svg", { "class": "comp-svg movable", width: 56, height: 84, viewBox: "0 0 56 84" });
+    svg.appendChild(svgEl("circle", { "class": "buzzer-rim", cx: 28, cy: 24, r: 19 }));
+    var body = svgEl("circle", { "class": "buzzer-body", cx: 28, cy: 24, r: 15 });
+    svg.appendChild(body);
+    [[28, 14], [36, 19], [36, 29], [28, 34], [20, 29], [20, 19]].forEach(function (xy) {
+      svg.appendChild(svgEl("circle", { "class": "buzzer-hole", cx: xy[0], cy: xy[1], r: 1.6 }));
+    });
+    var plus = svgEl("text", { "class": "buzzer-plus", x: 28, y: 27 });
+    plus.textContent = "+";
+    svg.appendChild(plus);
+    svg.appendChild(svgEl("line", { "class": "part-leg", x1: 20, y1: 40, x2: 14, y2: 68 }));
+    svg.appendChild(svgEl("line", { "class": "part-leg", x1: 36, y1: 40, x2: 44, y2: 68 }));
+    var t = terminalPair(svg, [14, 68], [44, 68], 78);
+    return { svg: svg, sigDot: t.sigDot, gndDot: t.gndDot, body: body };
+  }
+
+  function buildPaletteIcon(type) {
+    if (type === "led") {
+      var svg = svgEl("svg", { "class": "palette-icon-svg comp-svg", viewBox: "0 0 56 60" });
+      svg.appendChild(svgEl("line", { "class": "part-leg", x1: 18, y1: 38, x2: 14, y2: 56 }));
+      svg.appendChild(svgEl("line", { "class": "part-leg", x1: 38, y1: 38, x2: 42, y2: 56 }));
+      svg.appendChild(svgEl("rect", { "class": "led-base", x: 8, y: 30, width: 40, height: 10, rx: 2 }));
+      svg.appendChild(svgEl("path", { "class": "led-dome", d: "M8,32 L8,20 A20,20 0 0 1 48,20 L48,32 Z" }));
+      return svg;
+    }
+    if (type === "button") {
+      var svg2 = svgEl("svg", { "class": "palette-icon-svg comp-svg", viewBox: "0 0 56 60" });
+      svg2.appendChild(svgEl("rect", { "class": "btn-housing", x: 10, y: 8, width: 36, height: 36, rx: 4 }));
+      svg2.appendChild(svgEl("circle", { "class": "btn-cap", cx: 28, cy: 26, r: 11 }));
+      return svg2;
+    }
+    var svg3 = svgEl("svg", { "class": "palette-icon-svg comp-svg", viewBox: "0 0 56 60" });
+    svg3.appendChild(svgEl("circle", { "class": "buzzer-body", cx: 28, cy: 26, r: 16 }));
+    [[23, 21], [33, 21], [28, 30]].forEach(function (xy) {
+      svg3.appendChild(svgEl("circle", { "class": "buzzer-hole", cx: xy[0], cy: xy[1], r: 2 }));
+    });
+    return svg3;
+  }
+
+  // ================= wiring geometry =================
+  function elCenter(el) {
+    var r = el.getBoundingClientRect();
+    var cRect = boardCanvas.getBoundingClientRect();
+    return { x: r.left + r.width / 2 - cRect.left, y: r.top + r.height / 2 - cRect.top };
+  }
+  function elbowPath(x1, y1, x2, y2) {
+    var midY = y1 + (y2 - y1) * 0.6;
+    return "M" + x1 + "," + y1 + " L" + x1 + "," + midY + " L" + x2 + "," + midY + " L" + x2 + "," + y2;
+  }
+  function redrawWires() {
+    Object.keys(placed).forEach(function (type) {
+      var comp = placed[type];
+      if (!comp) return;
+      ["signal", "gnd"].forEach(function (term) {
+        var w = comp.wires[term];
+        if (!w) return;
+        var start = elCenter(w.termEl);
+        var end = elCenter(w.pinEl);
+        w.path.setAttribute("d", elbowPath(start.x, start.y, end.x, end.y));
+      });
+    });
+  }
+  function isPinWired(pinNumber) {
+    var expected = "GP" + pinNumber;
+    return Object.keys(placed).some(function (type) {
+      var comp = placed[type];
+      if (!comp || !comp.wires.signal || !comp.wires.gnd) return false;
+      return comp.wires.signal.pinEl.dataset.pin === expected && comp.wires.gnd.pinEl.dataset.pin === "GND";
+    });
+  }
+  function expectedPinFor(componentType, terminalType) {
+    var entry = currentStage.requiredWiring.filter(function (r) { return r.type === componentType && r.terminal === terminalType; })[0];
+    return entry ? entry.pin : null;
+  }
+
+  // ================= component placement =================
+  function placeComponent(type, x, y) {
+    if (placed[type]) return;
+    var built = type === "led" ? buildLedSvg() : type === "button" ? buildButtonSvg() : buildBuzzerSvg();
+
+    var el = document.createElement("div");
+    el.className = "component " + type + "-component";
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    el.appendChild(built.svg);
+    boardCanvas.appendChild(el);
+
+    placed[type] = { el: el, svg: built.svg, wires: { signal: null, gnd: null }, rotation: 0 };
+
+    bindDragStart(built.sigDot, function (e, usePointer) { startWireDrag(e, built.sigDot, "signal", type, usePointer); });
+    bindDragStart(built.gndDot, function (e, usePointer) { startWireDrag(e, built.gndDot, "gnd", type, usePointer); });
+
+    // every component can be repositioned and rotated in place, same as the LED
+    bindDragStart(built.svg, function (e, usePointer) { startComponentMove(e, type, usePointer); });
     var rotateBtn = document.createElement("button");
     rotateBtn.type = "button";
-    rotateBtn.className = "led-rotate-btn";
+    rotateBtn.className = "rotate-btn";
     rotateBtn.textContent = "↻";
-    rotateBtn.title = "LED 방향 회전";
-
-    ledEl.appendChild(svg);
-    ledEl.appendChild(rotateBtn);
-    boardCanvas.appendChild(ledEl);
-
-    ledRotation = 0;
-
-    bindDragStart(sigDot, function (e, usePointer) { startWireDrag(e, sigDot, "signal", usePointer); });
-    bindDragStart(gndDot, function (e, usePointer) { startWireDrag(e, gndDot, "gnd", usePointer); });
-    bindDragStart(svg, function (e, usePointer) { startLedMove(e, usePointer); });
-
+    rotateBtn.title = "방향 회전";
+    el.appendChild(rotateBtn);
     rotateBtn.addEventListener("click", function () {
-      ledRotation = (ledRotation + 90) % 360;
-      svg.style.transform = "rotate(" + ledRotation + "deg)";
+      placed[type].rotation = (placed[type].rotation + 90) % 360;
+      built.svg.style.transform = "rotate(" + placed[type].rotation + "deg)";
       redrawWires();
     });
 
-    log("LED를 캔버스에 배치했어요.");
+    if (type === "button") {
+      // stopPropagation so pressing the cap doesn't also start dragging the whole button
+      bindDragStart(built.cap, function (e) { e.preventDefault(); e.stopPropagation(); setButtonPressed(true, built.cap); });
+      document.addEventListener("pointerup", function () { setButtonPressed(false, built.cap); });
+      document.addEventListener("mouseup", function () { if (!pointerCapable) setButtonPressed(false, built.cap); });
+    }
+
+    log(COMPONENT_LABEL[type] + "를 캔버스에 배치했어요.");
   }
 
-  function startLedMove(e, usePointer) {
+  function setButtonPressed(pressed, capEl) {
+    buttonPressed = pressed;
+    capEl.classList.toggle("pressed", pressed);
+  }
+
+  function startComponentMove(e, type, usePointer) {
     e.preventDefault();
+    var comp = placed[type];
     var startX = e.clientX, startY = e.clientY;
-    var origLeft = parseFloat(ledEl.style.left) || 0;
-    var origTop = parseFloat(ledEl.style.top) || 0;
+    var origLeft = parseFloat(comp.el.style.left) || 0;
+    var origTop = parseFloat(comp.el.style.top) || 0;
     var moveEvt = usePointer ? "pointermove" : "mousemove";
     var upEvt = usePointer ? "pointerup" : "mouseup";
-
     function onMove(ev) {
       var rect = boardCanvas.getBoundingClientRect();
-      var newLeft = origLeft + (ev.clientX - startX);
-      var newTop = origTop + (ev.clientY - startY);
-      newLeft = Math.max(0, Math.min(newLeft, rect.width - 56));
-      newTop = Math.max(0, Math.min(newTop, rect.height - 86));
-      ledEl.style.left = newLeft + "px";
-      ledEl.style.top = newTop + "px";
+      var newLeft = Math.max(0, Math.min(origLeft + (ev.clientX - startX), rect.width - 56));
+      var newTop = Math.max(0, Math.min(origTop + (ev.clientY - startY), rect.height - 86));
+      comp.el.style.left = newLeft + "px";
+      comp.el.style.top = newTop + "px";
       redrawWires();
     }
     function onUp() {
@@ -757,37 +910,70 @@
     document.addEventListener(upEvt, onUp);
   }
 
-  function redrawWires() {
-    ["signal", "gnd"].forEach(function (key) {
-      var w = wires[key];
-      if (!w) return;
-      var start = elCenter(w.termEl);
-      var end = elCenter(w.pinEl);
-      w.path.setAttribute("d", elbowPath(start.x, start.y, end.x, end.y));
-    });
-  }
-
-  function removeLed() {
-    if (ledEl) { ledEl.remove(); ledEl = null; }
-    wires = { signal: null, gnd: null };
-    ledRotation = 0;
+  function removeAllComponents() {
+    Object.keys(placed).forEach(function (type) { if (placed[type]) placed[type].el.remove(); });
+    placed = {};
   }
 
   function updateLedVisual(on) {
-    if (!ledEl) return;
-    if (on) ledEl.classList.add("on"); else ledEl.classList.remove("on");
+    var comp = placed.led;
+    if (!comp) return;
+    comp.el.classList.toggle("on", on);
+  }
+
+  // ================= buzzer audio =================
+  var audioCtx = null, buzzOsc = null, buzzGain = null;
+  function ensureAudio() {
+    if (audioCtx) return;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      buzzOsc = audioCtx.createOscillator();
+      buzzGain = audioCtx.createGain();
+      buzzGain.gain.value = 0;
+      buzzOsc.type = "square";
+      buzzOsc.frequency.value = 880;
+      buzzOsc.connect(buzzGain);
+      buzzGain.connect(audioCtx.destination);
+      buzzOsc.start();
+    } catch (e) { /* Web Audio unavailable — fail silently, visuals still work */ }
+  }
+  function setBuzzerAudio(on) {
+    if (audioCtx && buzzGain) {
+      buzzGain.gain.setTargetAtTime(on ? 0.12 : 0, audioCtx.currentTime, 0.01);
+    }
+    var comp = placed.buzzer;
+    if (comp) comp.svg.querySelector(".buzzer-body").classList.toggle("buzzing", on);
+  }
+  function stopAudio() {
+    if (audioCtx && buzzGain) buzzGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.01);
+    var comp = placed.buzzer;
+    if (comp) { var b = comp.svg.querySelector(".buzzer-body"); if (b) b.classList.remove("buzzing"); }
   }
 
   // ================= palette drag-to-place =================
-  bindDragStart(paletteLed, function (e, usePointer) {
-    if (ledEl) { log("LED는 1개만 배치할 수 있어요.", "err"); return; }
+  function renderPalette() {
+    paletteComponentsEl.innerHTML = "";
+    currentStage.components.forEach(function (type) {
+      var item = document.createElement("div");
+      item.className = "palette-item";
+      item.appendChild(buildPaletteIcon(type));
+      var span = document.createElement("span");
+      span.textContent = COMPONENT_LABEL[type];
+      item.appendChild(span);
+      paletteComponentsEl.appendChild(item);
+      bindDragStart(item, function (e, usePointer) { startPlaceDrag(e, item, type, usePointer); });
+    });
+  }
+
+  function startPlaceDrag(e, item, type, usePointer) {
+    if (placed[type]) { log(COMPONENT_LABEL[type] + "는 1개만 배치할 수 있어요.", "err"); return; }
     e.preventDefault();
-    var ghost = paletteLed.cloneNode(true);
+    var ghost = item.cloneNode(true);
     ghost.style.position = "fixed";
     ghost.style.pointerEvents = "none";
     ghost.style.opacity = "0.8";
     ghost.style.zIndex = "100";
-    ghost.style.width = paletteLed.offsetWidth + "px";
+    ghost.style.width = item.offsetWidth + "px";
     document.body.appendChild(ghost);
     moveGhost(e.clientX, e.clientY);
 
@@ -805,20 +991,19 @@
       ghost.remove();
       var rect = boardCanvas.getBoundingClientRect();
       if (ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
-        var x = ev.clientX - rect.left - 18;
-        var y = ev.clientY - rect.top - 18;
-        x = Math.max(4, Math.min(x, rect.width - 60));
-        y = Math.max(4, Math.min(y, rect.height - 80));
-        placeLed(x, y);
+        var x = Math.max(4, Math.min(ev.clientX - rect.left - 18, rect.width - 60));
+        var y = Math.max(4, Math.min(ev.clientY - rect.top - 18, rect.height - 80));
+        placeComponent(type, x, y);
       }
     }
     document.addEventListener(moveEvt, onMove);
     document.addEventListener(upEvt, onUp);
-  });
+  }
 
   // ================= code blocks (drag or type) =================
   function buildCodeBlocks() {
-    CODE_BLOCKS.forEach(function (blk) {
+    codeBlocksContainer.innerHTML = "";
+    currentStage.codeBlocks.forEach(function (blk) {
       var el = document.createElement("div");
       el.className = "code-block";
       el.textContent = blk.label;
@@ -827,16 +1012,23 @@
       bindDragStart(el, function (e, usePointer) { startBlockDrag(e, el, blk, usePointer); });
     });
   }
-
+  // Inserts the block as a new line right after the line the caret is currently on
+  // (falls back to the end of the code if the editor hasn't been focused yet).
   function insertSnippet(codeText) {
     var current = codeEditor.value;
-    var sep = (current.length && !current.endsWith("\n")) ? "\n" : "";
-    codeEditor.value = current + sep + codeText + "\n";
+    var pos = lastCursorPos != null ? Math.max(0, Math.min(lastCursorPos, current.length)) : current.length;
+    var lineEnd = current.indexOf("\n", pos);
+    if (lineEnd === -1) lineEnd = current.length;
+    var before = current.slice(0, lineEnd);
+    var after = current.slice(lineEnd);
+    var insertion = "\n" + codeText;
+    codeEditor.value = before + insertion + after;
+    var newPos = before.length + insertion.length;
     codeEditor.focus();
-    codeEditor.setSelectionRange(codeEditor.value.length, codeEditor.value.length);
+    codeEditor.setSelectionRange(newPos, newPos);
+    lastCursorPos = newPos;
     codeEditor.scrollTop = codeEditor.scrollHeight;
   }
-
   function startBlockDrag(e, el, blk, usePointer) {
     e.preventDefault();
     var ghost = el.cloneNode(true);
@@ -878,26 +1070,14 @@
   }
 
   // ================= wire dragging =================
-  function elCenter(el) {
-    var r = el.getBoundingClientRect();
-    var cRect = boardCanvas.getBoundingClientRect();
-    return { x: r.left + r.width / 2 - cRect.left, y: r.top + r.height / 2 - cRect.top };
-  }
-
-  // Manhattan-style elbow path so wires read as real connections, not stray diagonals.
-  function elbowPath(x1, y1, x2, y2) {
-    var midY = y1 + (y2 - y1) * 0.6;
-    return "M" + x1 + "," + y1 + " L" + x1 + "," + midY + " L" + x2 + "," + midY + " L" + x2 + "," + y2;
-  }
-
-  function startWireDrag(e, fromEl, terminalType, usePointer) {
+  function startWireDrag(e, fromEl, terminalType, componentType, usePointer) {
     e.preventDefault();
     e.stopPropagation();
     var start = elCenter(fromEl);
     var line = svgEl("path", { "class": "wire-drag", d: elbowPath(start.x, start.y, start.x, start.y) });
     wireLayer.appendChild(line);
 
-    dragWire = { fromEl: fromEl, terminalType: terminalType, line: line, start: start };
+    dragWire = { fromEl: fromEl, terminalType: terminalType, componentType: componentType, line: line, start: start };
 
     var moveEvt = usePointer ? "pointermove" : "mousemove";
     var upEvt = usePointer ? "pointerup" : "mouseup";
@@ -931,49 +1111,57 @@
     if (!dragWire) return;
     var pinLabel = pinDot.dataset.pin;
     var terminalType = dragWire.terminalType;
-    var valid = (terminalType === "signal" && pinLabel === "GP15") ||
-                (terminalType === "gnd" && pinLabel === "GND");
+    var componentType = dragWire.componentType;
+    var expected = expectedPinFor(componentType, terminalType);
+    var valid = expected !== null && pinLabel === expected;
 
     dragWire.line.remove();
 
     if (!valid) {
-      log("잘못된 연결이에요: " + (terminalType === "signal" ? "신호선" : "GND선") + " → " + pinLabel, "err");
-      log("💡 " + (terminalType === "signal" ? "신호선은 GP15 핀에 연결해야 해요." : "GND선은 GND라고 적힌 핀에 연결해야 해요."));
+      log("잘못된 연결이에요: " + COMPONENT_LABEL[componentType] + " " + (terminalType === "signal" ? "신호선" : "GND선") + " → " + pinLabel, "err");
+      log("💡 " + (terminalType === "signal" ? (COMPONENT_LABEL[componentType] + "의 신호선은 " + expected + " 핀에 연결해야 해요.") : "GND선은 GND라고 적힌 핀에 연결해야 해요."));
       pinDot.classList.add("reject");
       setTimeout(function () { pinDot.classList.remove("reject"); }, 400);
       dragWire = null;
       return;
     }
 
-    // draw permanent elbow wire
     var start = dragWire.start;
     var end = elCenter(pinDot);
     var perm = svgEl("path", { "class": "wire-perm", d: elbowPath(start.x, start.y, end.x, end.y) });
-    perm.dataset.terminal = terminalType;
     wireLayer.appendChild(perm);
 
     dragWire.fromEl.classList.add("connected");
     pinDot.classList.add("connected");
+    placed[componentType].wires[terminalType] = { termEl: dragWire.fromEl, pinEl: pinDot, path: perm };
 
-    wires[terminalType] = { termEl: dragWire.fromEl, pinEl: pinDot, path: perm };
-
-    if (terminalType === "signal") circuit.signal = pinLabel;
-    else circuit.gnd = pinLabel;
-
-    log((terminalType === "signal" ? "신호선" : "GND선") + "이 " + pinLabel + "에 연결되었어요.", "ok");
+    log(COMPONENT_LABEL[componentType] + " " + (terminalType === "signal" ? "신호선" : "GND선") + "이 " + pinLabel + "에 연결되었어요.", "ok");
     dragWire = null;
   }
 
-  // ================= code parsing =================
+  function connectByLabel(componentType, terminalType, pinLabel) {
+    var comp = placed[componentType];
+    if (!comp) return;
+    var termEl = comp.svg.querySelector('.terminal-hit[data-terminal="' + terminalType + '"]');
+    var pinEl = pinEls[pinLabel] && pinEls[pinLabel][0];
+    if (!termEl || !pinEl) return;
+    var start = elCenter(termEl);
+    var end = elCenter(pinEl);
+    var perm = svgEl("path", { "class": "wire-perm", d: elbowPath(start.x, start.y, end.x, end.y) });
+    wireLayer.appendChild(perm);
+    termEl.classList.add("connected");
+    pinEl.classList.add("connected");
+    comp.wires[terminalType] = { termEl: termEl, pinEl: pinEl, path: perm };
+  }
+
+  // ================= code parsing helpers =================
   function checkBrackets(code) {
     var pairs = { "(": ")", "[": "]", "{": "}" };
     var closers = { ")": "(", "]": "[", "}": "{" };
     var stack = [];
     var lines = code.split("\n");
     for (var i = 0; i < lines.length; i++) {
-      var line = lines[i];
-      var hashIdx = line.indexOf("#");
-      if (hashIdx !== -1) line = line.slice(0, hashIdx); // ignore comments so example text like "예)" can't break parsing
+      var line = stripComment(lines[i]);
       for (var j = 0; j < line.length; j++) {
         var ch = line[j];
         if (pairs[ch]) stack.push({ ch: ch, line: i + 1 });
@@ -990,97 +1178,190 @@
     }
     return { ok: true };
   }
-
   function getIndent(line) {
     var m = line.match(/^[ \t]*/);
     return m ? m[0].length : 0;
   }
+  function stripComment(line) {
+    var hashIdx = line.indexOf("#");
+    return hashIdx !== -1 ? line.slice(0, hashIdx) : line;
+  }
 
-  function parseCode(code) {
+  // ================= generalized code parsing =================
+  // Recognizes: X = Pin(N, Pin.OUT) / X = Pin(N, Pin.IN, Pin.PULL_UP), while True:,
+  // if X.value() == 0/1: / else:, X.on()/X.off()/X.toggle(), sleep(n), # comments.
+  function parseStatements(lines, startIdx, parentIndent, declarations) {
+    var statements = [];
+    var i = startIdx;
+    while (i < lines.length) {
+      var raw = lines[i];
+      if (raw.trim() === "") { i++; continue; }
+      var indent = getIndent(raw);
+      if (indent <= parentIndent) break;
+      var codePart = stripComment(raw).trim();
+      if (codePart === "") { i++; continue; }
+
+      var ifMatch = codePart.match(/^if\s+(\w+)\.value\(\)\s*==\s*(0|1)\s*:$/);
+      var callMatch = codePart.match(/^(\w+)\.(on|off|toggle)\(\s*\)$/);
+      var sleepMatch = codePart.match(/^sleep\(\s*([\d.]+)\s*\)$/);
+
+      if (ifMatch) {
+        var condVar = ifMatch[1], expected = parseInt(ifMatch[2], 10);
+        var dev = declarations[condVar];
+        if (!dev) return { error: { message: (i + 1) + "번째 줄: '" + condVar + "'가 선언되지 않았어요.", hint: "먼저 Pin(...)으로 " + condVar + "를 선언해야 해요.", line: i + 1 } };
+        if (dev.mode !== "IN") return { error: { message: (i + 1) + "번째 줄: '" + condVar + "'는 입력(IN) 핀이 아니에요.", hint: condVar + ".value()는 Pin(.., Pin.IN, Pin.PULL_UP)으로 선언한 변수에서만 쓸 수 있어요.", line: i + 1 } };
+
+        var thenResult = parseStatements(lines, i + 1, indent, declarations);
+        if (thenResult.error) return thenResult;
+        var nextI = thenResult.nextIdx;
+        var elseBlock = null;
+        if (nextI < lines.length) {
+          var peek = lines[nextI];
+          if (peek.trim() !== "" && getIndent(peek) === indent && /^else\s*:$/.test(stripComment(peek).trim())) {
+            var elseResult = parseStatements(lines, nextI + 1, indent, declarations);
+            if (elseResult.error) return elseResult;
+            elseBlock = elseResult.statements;
+            nextI = elseResult.nextIdx;
+          }
+        }
+        statements.push({ type: "if", cond: { varName: condVar, expected: expected }, thenBlock: thenResult.statements, elseBlock: elseBlock });
+        i = nextI;
+        continue;
+      }
+
+      if (/^else\s*:$/.test(codePart)) {
+        return { error: { message: (i + 1) + "번째 줄: 짝이 맞는 if가 없는 else예요.", hint: "else: 바로 위 같은 들여쓰기에 if ...: 블록이 있어야 해요.", line: i + 1 } };
+      }
+
+      if (callMatch) {
+        var cVar = callMatch[1], cMethod = callMatch[2];
+        var cdev = declarations[cVar];
+        if (!cdev) return { error: { message: (i + 1) + "번째 줄: '" + cVar + "'가 선언되지 않았어요.", hint: "먼저 Pin(...)으로 " + cVar + "를 선언해야 해요.", line: i + 1 } };
+        if (cdev.mode !== "OUT") return { error: { message: (i + 1) + "번째 줄: '" + cVar + "'는 출력(OUT) 핀이 아니라서 켜고 끌 수 없어요.", hint: cVar + ".on()/off()/toggle()은 Pin(.., Pin.OUT)으로 선언한 변수에서만 쓸 수 있어요.", line: i + 1 } };
+        statements.push({ type: "call", varName: cVar, method: cMethod, pin: cdev.pin });
+        i++;
+        continue;
+      }
+
+      if (sleepMatch) {
+        statements.push({ type: "sleep", seconds: Math.max(parseFloat(sleepMatch[1]), 0.05) });
+        i++;
+        continue;
+      }
+
+      return { error: { message: (i + 1) + "번째 줄을 이해할 수 없어요: \"" + codePart + "\"", hint: "이 시뮬레이터는 정해진 명령만 이해할 수 있어요. 왼쪽 코드 블록을 활용해보세요.", line: i + 1 } };
+    }
+    return { statements: statements, nextIdx: i };
+  }
+
+  function containsSleep(statements) {
+    return statements.some(function (s) {
+      if (s.type === "sleep") return true;
+      if (s.type === "if") return containsSleep(s.thenBlock) || (s.elseBlock && containsSleep(s.elseBlock));
+      return false;
+    });
+  }
+
+  function parseCode(code, stage) {
     if (!code || !code.trim()) {
       return { ok: false, message: "먼저 코드를 작성해 주세요.", hint: "왼쪽의 코드 블록을 코드 에디터로 드래그하거나, 직접 코드를 입력해보세요." };
     }
-
     var bracketCheck = checkBrackets(code);
     if (!bracketCheck.ok) {
-      return { ok: false, message: bracketCheck.message, line: bracketCheck.line, hint: bracketCheck.hint };
+      return { ok: false, message: bracketCheck.message, hint: bracketCheck.hint };
     }
 
     var lines = code.split("\n");
-    var varName = null, pinNumber = null, pinDeclLine = null;
-    var pinRegex = /^\s*(\w+)\s*=\s*Pin\(\s*(\d+)\s*,\s*Pin\.OUT\s*\)\s*$/;
-    for (var i = 0; i < lines.length; i++) {
-      var lineNoComment = lines[i];
-      var declHash = lineNoComment.indexOf("#");
-      if (declHash !== -1) lineNoComment = lineNoComment.slice(0, declHash);
-      var m = lineNoComment.match(pinRegex);
-      if (m) { varName = m[1]; pinNumber = parseInt(m[2], 10); pinDeclLine = i + 1; break; }
+
+    if (!lines.some(function (l) { return /^\s*import\s+machine\s*$/.test(stripComment(l)); })) {
+      return { ok: false, message: "import machine이 필요해요.", hint: "왼쪽의 'machine 불러오기' 코드 블록을 코드 에디터로 드래그해보세요." };
     }
-    if (!varName) {
-      return { ok: false, message: "led = Pin(15, Pin.OUT) 형태의 선언을 찾을 수 없어요.", hint: "왼쪽의 'Pin 선언' 코드 블록을 코드 에디터로 드래그해보세요." };
+    if (!lines.some(function (l) { return /^\s*import\s+time\s*$/.test(stripComment(l)); })) {
+      return { ok: false, message: "import time이 필요해요.", hint: "왼쪽의 'time 불러오기' 코드 블록을 코드 에디터로 드래그해보세요." };
+    }
+
+    var declarations = {};
+    var outRegex = /^\s*(\w+)\s*=\s*Pin\(\s*(\d+)\s*,\s*Pin\.OUT\s*\)\s*$/;
+    var inRegex = /^\s*(\w+)\s*=\s*Pin\(\s*(\d+)\s*,\s*Pin\.IN\s*,\s*Pin\.PULL_UP\s*\)\s*$/;
+    for (var i = 0; i < lines.length; i++) {
+      var lc = stripComment(lines[i]);
+      var om = lc.match(outRegex);
+      if (om) { declarations[om[1]] = { pin: parseInt(om[2], 10), mode: "OUT" }; continue; }
+      var imm = lc.match(inRegex);
+      if (imm) { declarations[imm[1]] = { pin: parseInt(imm[2], 10), mode: "IN" }; }
+    }
+    if (Object.keys(declarations).length === 0) {
+      return { ok: false, message: "Pin(...) 선언을 찾을 수 없어요.", hint: "왼쪽의 'Pin 선언' 코드 블록을 코드 에디터로 드래그해보세요." };
     }
 
     var whileIdx = -1, whileIndent = 0;
     var whileRegex = /^\s*while\s+True\s*:\s*$/;
     for (var w = 0; w < lines.length; w++) {
-      var whileLineNoComment = lines[w];
-      var whileHash = whileLineNoComment.indexOf("#");
-      if (whileHash !== -1) whileLineNoComment = whileLineNoComment.slice(0, whileHash);
-      if (whileRegex.test(whileLineNoComment)) { whileIdx = w; whileIndent = getIndent(lines[w]); break; }
+      if (whileRegex.test(stripComment(lines[w]))) { whileIdx = w; whileIndent = getIndent(lines[w]); break; }
     }
     if (whileIdx === -1) {
       return { ok: false, message: "while True: 반복문이 필요해요.", hint: "왼쪽의 '반복 시작 (while)' 코드 블록을 추가해보세요." };
     }
 
-    var sequence = [];
-    var toggleRegex = new RegExp("^\\s*" + varName + "\\.toggle\\(\\s*\\)\\s*$");
-    var sleepRegex = /^\s*sleep\(\s*([\d.]+)\s*\)\s*$/;
-    var hasSleep = false;
-
-    for (var b = whileIdx + 1; b < lines.length; b++) {
-      var raw = lines[b];
-      if (raw.trim() === "") continue;
-      var indent = getIndent(raw);
-      if (indent <= whileIndent) break;
-      var trimmed = raw.trim();
-      if (trimmed.startsWith("#")) continue;
-
-      // allow a trailing "# 설명" comment after real code on the same line
-      var codePart = raw;
-      var inlineHash = codePart.indexOf("#");
-      if (inlineHash !== -1) codePart = codePart.slice(0, inlineHash);
-
-      if (toggleRegex.test(codePart)) {
-        sequence.push({ type: "toggle" });
-      } else if (sleepRegex.test(codePart)) {
-        var sec = parseFloat(codePart.match(sleepRegex)[1]);
-        sequence.push({ type: "sleep", seconds: Math.max(sec, 0.05) });
-        hasSleep = true;
-      } else {
-        return {
-          ok: false,
-          message: (b + 1) + "번째 줄을 이해할 수 없어요: \"" + trimmed + "\"",
-          line: b + 1,
-          hint: "이 시뮬레이터는 " + varName + ".toggle()과 sleep(숫자)만 이해할 수 있어요. 왼쪽 코드 블록을 활용해보세요."
-        };
-      }
+    var blockResult = parseStatements(lines, whileIdx + 1, whileIndent, declarations);
+    if (blockResult.error) {
+      return { ok: false, message: blockResult.error.message, hint: blockResult.error.hint };
+    }
+    if (blockResult.statements.length === 0) {
+      return { ok: false, message: "while True: 안에 실행할 코드가 없어요.", hint: "왼쪽의 코드 블록을 while True: 아래로 추가해보세요." };
+    }
+    if (stage.requireSleep && !containsSleep(blockResult.statements)) {
+      return { ok: false, message: "sleep이 없어 실행을 중단했어요.", hint: "while True: 안에 sleep() 블록을 추가해보세요." };
     }
 
-    if (sequence.length === 0) {
-      return { ok: false, message: "while True: 안에 실행할 코드가 없어요.", hint: "'불 켜고 끄기'와 '1초 대기' 블록을 while True: 아래로 추가해보세요." };
-    }
-    if (!hasSleep) {
-      return { ok: false, message: "sleep이 없어 실행을 중단했어요.", hint: "while True: 안에 '1초 대기' 같은 sleep() 블록을 추가해보세요." };
-    }
-
-    return { ok: true, varName: varName, pinNumber: pinNumber, sequence: sequence };
+    return { ok: true, declarations: declarations, body: blockResult.statements };
   }
 
-  // ================= execution =================
+  // ================= execution (generator-based interpreter) =================
+  function applyCall(stmt) {
+    var pin = stmt.pin;
+    var newState = stmt.method === "toggle" ? !pinOutputState[pin] : stmt.method === "on";
+    pinOutputState[pin] = newState;
+    if (pin === 15) { updateLedVisual(newState); log(newState ? "LED ON" : "LED OFF"); }
+    else if (pin === 16) { setBuzzerAudio(newState); log(newState ? "부저 ON 🔊" : "부저 OFF"); }
+  }
+  function readInputPin(pin) {
+    if (pin === 14) return buttonPressed ? 0 : 1; // PULL_UP: pressed=0, released=1
+    return 1;
+  }
+  function evalCond(cond, declarations) {
+    var dev = declarations[cond.varName];
+    if (!dev) return false;
+    return readInputPin(dev.pin) === cond.expected;
+  }
+  function* runBlock(statements, declarations) {
+    for (var i = 0; i < statements.length; i++) {
+      var stmt = statements[i];
+      if (stmt.type === "call") {
+        applyCall(stmt);
+      } else if (stmt.type === "sleep") {
+        yield stmt.seconds;
+      } else if (stmt.type === "if") {
+        var branch = evalCond(stmt.cond, declarations) ? stmt.thenBlock : stmt.elseBlock;
+        if (branch) yield* runBlock(branch, declarations);
+      }
+    }
+  }
+  // Always yields at least once per full pass through the loop body, even if the
+  // user's code has no sleep() on the taken branch — keeps a tight polling loop
+  // (e.g. button checks) from freezing the tab, at a safe ~20Hz poll rate.
+  function* runLoop(whileBody, declarations) {
+    while (true) {
+      yield* runBlock(whileBody, declarations);
+      yield 0.05;
+    }
+  }
+
   function runProgram() {
     stopProgram();
+    ensureAudio();
     var code = codeEditor.value;
-    var result = parseCode(code);
+    var result = parseCode(code, currentStage);
 
     if (!result.ok) {
       log(result.message, "err");
@@ -1089,9 +1370,14 @@
       return;
     }
 
-    if (result.pinNumber !== 15 || circuit.signal !== "GP15" || circuit.gnd !== "GND") {
-      log("GP" + result.pinNumber + "에 연결된 LED가 없어요.", "err");
-      log("💡 보드 캔버스에서 LED의 신호선을 GP15에, GND선을 GND 핀에 드래그해서 연결해보세요.");
+    var missingPin = null;
+    Object.keys(result.declarations).forEach(function (v) {
+      var d = result.declarations[v];
+      if (missingPin === null && !isPinWired(d.pin)) missingPin = d.pin;
+    });
+    if (missingPin !== null) {
+      log("GP" + missingPin + "에 연결된 부품이 없어요.", "err");
+      log("💡 보드 캔버스에서 부품의 신호선을 GP" + missingPin + "에, GND선을 GND 핀에 드래그해서 연결해보세요.");
       setStatus("오류", "error");
       return;
     }
@@ -1101,22 +1387,12 @@
     setStatus("실행 중", "running");
     log("실행을 시작합니다.", "ok");
 
-    var seqIndex = 0;
-    var ledOn = false;
-
+    var gen = runLoop(result.body, result.declarations);
     function step() {
       if (!isRunning) return;
-      var s = result.sequence[seqIndex % result.sequence.length];
-      if (s.type === "toggle") {
-        ledOn = !ledOn;
-        updateLedVisual(ledOn);
-        log(ledOn ? "LED ON" : "LED OFF");
-        seqIndex++;
-        execTimer = setTimeout(step, 0);
-      } else {
-        seqIndex++;
-        execTimer = setTimeout(step, s.seconds * 1000);
-      }
+      var r = gen.next();
+      if (r.done) return;
+      execTimer = setTimeout(step, r.value * 1000);
     }
     step();
   }
@@ -1127,50 +1403,63 @@
     isRunning = false;
     runBtn.disabled = false;
     updateLedVisual(false);
+    setBuzzerAudio(false);
     if (statusLabel.textContent !== "상태: 오류") setStatus("정지됨");
   }
 
   // ================= grading =================
+  function gradeStage1(code) {
+    var checks = [];
+    checks.push({ label: "import machine를 불러왔어요", pass: /^\s*import\s+machine\s*(#.*)?$/m.test(code), hint: "왼쪽의 'machine 불러오기' 코드 블록을 드래그해보세요." });
+    checks.push({ label: "import time를 불러왔어요", pass: /^\s*import\s+time\s*(#.*)?$/m.test(code), hint: "왼쪽의 'time 불러오기' 코드 블록을 드래그해보세요." });
+    var pinMatch = code.match(/(\w+)\s*=\s*Pin\(\s*15\s*,\s*Pin\.OUT\s*\)/);
+    checks.push({ label: "Pin(15, Pin.OUT)로 LED 핀을 선언했어요", pass: !!pinMatch, hint: "왼쪽의 'Pin 선언' 코드 블록을 드래그해보세요." });
+    checks.push({ label: "while True: 반복문을 사용했어요", pass: /while\s+True\s*:/.test(code), hint: "왼쪽의 '반복 시작 (while)' 코드 블록을 추가해보세요." });
+    var varName = pinMatch ? pinMatch[1] : "led";
+    checks.push({ label: varName + ".toggle()로 LED를 켜고 껐어요", pass: new RegExp(escapeRe(varName) + "\\.toggle\\(\\s*\\)").test(code), hint: "'불 켜고 끄기' 블록을 while True: 안에 추가해보세요." });
+    checks.push({ label: "sleep()으로 점멸 간격을 넣었어요", pass: /sleep\(\s*[\d.]+\s*\)/.test(code), hint: "'1초 대기' 같은 sleep() 블록을 추가해보세요." });
+    checks.push({ label: "LED 신호선을 GP15에, GND선을 GND에 연결했어요", pass: isPinWired(15), hint: "보드 캔버스에서 LED의 신호선을 GP15에, GND선을 GND 핀에 드래그해서 연결해보세요." });
+    return checks;
+  }
+
+  function gradeStage2(code) {
+    var checks = [];
+    checks.push({ label: "import machine를 불러왔어요", pass: /^\s*import\s+machine\s*(#.*)?$/m.test(code), hint: "왼쪽의 'machine 불러오기' 코드 블록을 드래그해보세요." });
+    checks.push({ label: "import time를 불러왔어요", pass: /^\s*import\s+time\s*(#.*)?$/m.test(code), hint: "왼쪽의 'time 불러오기' 코드 블록을 드래그해보세요." });
+    var ledMatch = code.match(/(\w+)\s*=\s*Pin\(\s*15\s*,\s*Pin\.OUT\s*\)/);
+    checks.push({ label: "LED Pin(15, Pin.OUT)을 선언했어요", pass: !!ledMatch, hint: "왼쪽의 'LED Pin 선언' 코드 블록을 드래그해보세요." });
+    var btnMatch = code.match(/(\w+)\s*=\s*Pin\(\s*14\s*,\s*Pin\.IN\s*,\s*Pin\.PULL_UP\s*\)/);
+    checks.push({ label: "버튼 Pin(14, Pin.IN, Pin.PULL_UP)을 선언했어요", pass: !!btnMatch, hint: "왼쪽의 '버튼 Pin 선언' 코드 블록을 드래그해보세요." });
+    checks.push({ label: "while True: 반복문을 사용했어요", pass: /while\s+True\s*:/.test(code), hint: "왼쪽의 '반복 시작 (while)' 코드 블록을 추가해보세요." });
+    var btnVar = btnMatch ? btnMatch[1] : "button";
+    checks.push({ label: "if " + btnVar + ".value() == 0: 으로 버튼을 확인했어요", pass: new RegExp(escapeRe(btnVar) + "\\.value\\(\\)\\s*==\\s*0").test(code), hint: "왼쪽의 '버튼 눌림 확인 (if)' 코드 블록을 추가해보세요." });
+    var ledVar = ledMatch ? ledMatch[1] : "led";
+    checks.push({ label: ledVar + ".on()으로 LED를 켰어요", pass: new RegExp(escapeRe(ledVar) + "\\.on\\(\\s*\\)").test(code), hint: "'LED 켜기' 블록을 if: 안에 추가해보세요." });
+    checks.push({ label: ledVar + ".off()으로 LED를 껐어요", pass: new RegExp(escapeRe(ledVar) + "\\.off\\(\\s*\\)").test(code), hint: "'LED 끄기' 블록을 else: 안에 추가해보세요." });
+    checks.push({ label: "LED를 GP15/GND에 연결했어요", pass: isPinWired(15), hint: "보드 캔버스에서 LED의 신호선을 GP15에, GND선을 GND 핀에 연결해보세요." });
+    checks.push({ label: "버튼을 GP14/GND에 연결했어요", pass: isPinWired(14), hint: "보드 캔버스에서 버튼의 신호선을 GP14에, GND선을 GND 핀에 연결해보세요." });
+    return checks;
+  }
+
+  function gradeStage3(code) {
+    var checks = [];
+    checks.push({ label: "import machine를 불러왔어요", pass: /^\s*import\s+machine\s*(#.*)?$/m.test(code), hint: "왼쪽의 'machine 불러오기' 코드 블록을 드래그해보세요." });
+    checks.push({ label: "import time를 불러왔어요", pass: /^\s*import\s+time\s*(#.*)?$/m.test(code), hint: "왼쪽의 'time 불러오기' 코드 블록을 드래그해보세요." });
+    var bzMatch = code.match(/(\w+)\s*=\s*Pin\(\s*16\s*,\s*Pin\.OUT\s*\)/);
+    checks.push({ label: "부저 Pin(16, Pin.OUT)을 선언했어요", pass: !!bzMatch, hint: "왼쪽의 '부저 Pin 선언' 코드 블록을 드래그해보세요." });
+    checks.push({ label: "while True: 반복문을 사용했어요", pass: /while\s+True\s*:/.test(code), hint: "왼쪽의 '반복 시작 (while)' 코드 블록을 추가해보세요." });
+    var bzVar = bzMatch ? bzMatch[1] : "buzzer";
+    checks.push({ label: bzVar + ".on()을 사용했어요", pass: new RegExp(escapeRe(bzVar) + "\\.on\\(\\s*\\)").test(code), hint: "'부저 켜기' 블록을 while True: 안에 추가해보세요." });
+    checks.push({ label: bzVar + ".off()을 사용했어요", pass: new RegExp(escapeRe(bzVar) + "\\.off\\(\\s*\\)").test(code), hint: "'부저 끄기' 블록을 while True: 안에 추가해보세요." });
+    checks.push({ label: "sleep()으로 리듬 간격을 넣었어요", pass: /sleep\(\s*[\d.]+\s*\)/.test(code), hint: "sleep() 블록을 buzzer.on()/off() 사이에 추가해보세요." });
+    checks.push({ label: "부저를 GP16/GND에 연결했어요", pass: isPinWired(16), hint: "보드 캔버스에서 부저의 신호선을 GP16에, GND선을 GND 핀에 연결해보세요." });
+    return checks;
+  }
+
   function gradeCode() {
     var code = codeEditor.value;
-    var checks = [];
-
-    var pinMatch = code.match(/(\w+)\s*=\s*Pin\(\s*15\s*,\s*Pin\.OUT\s*\)/);
-    checks.push({
-      label: "Pin(15, Pin.OUT)로 LED 핀을 선언했어요",
-      pass: !!pinMatch,
-      hint: "왼쪽의 'Pin 선언' 코드 블록을 코드 에디터로 드래그해보세요."
-    });
-
-    checks.push({
-      label: "while True: 반복문을 사용했어요",
-      pass: /while\s+True\s*:/.test(code),
-      hint: "왼쪽의 '반복 시작 (while)' 코드 블록을 추가해보세요."
-    });
-
-    var varName = pinMatch ? pinMatch[1] : "led";
-    var toggleRe = new RegExp(varName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\.toggle\\(\\s*\\)");
-    checks.push({
-      label: varName + ".toggle()로 LED를 켜고 껐어요",
-      pass: toggleRe.test(code),
-      hint: "'불 켜고 끄기' 블록을 while True: 안에 추가해보세요."
-    });
-
-    checks.push({
-      label: "sleep()으로 점멸 간격을 넣었어요",
-      pass: /sleep\(\s*[\d.]+\s*\)/.test(code),
-      hint: "'1초 대기' 같은 sleep() 블록을 while True: 안에 추가해보세요."
-    });
-
-    var circuitOk = circuit.signal === "GP15" && circuit.gnd === "GND";
-    checks.push({
-      label: "LED 신호선을 GP15에, GND선을 GND에 연결했어요",
-      pass: circuitOk,
-      hint: "보드 캔버스에서 LED의 신호선을 GP15에, GND선을 GND 핀에 드래그해서 연결해보세요."
-    });
-
+    var checks = currentStage.buildChecks(code);
     var passCount = checks.filter(function (c) { return c.pass; }).length;
-
     log("──── 채점 결과 ────");
     checks.forEach(function (c) {
       log((c.pass ? "✅ " : "❌ ") + c.label, c.pass ? "ok" : "err");
@@ -1181,18 +1470,45 @@
     setStatus(allPass ? "채점 완료: 통과" : "채점 완료: " + passCount + "/" + checks.length, allPass ? "running" : "error");
   }
 
-  function resetAll() {
+  // ================= stage switching / reset =================
+  function renderStageTabs() {
+    stageTabsEl.innerHTML = "";
+    STAGES.forEach(function (stage, idx) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "stage-tab" + (idx === currentStageIndex ? " active" : "");
+      btn.textContent = stage.title;
+      btn.addEventListener("click", function () { switchStage(idx); });
+      stageTabsEl.appendChild(btn);
+    });
+  }
+
+  function switchStage(index) {
     stopProgram();
-    removeLed();
-    circuit = { signal: null, gnd: null };
-    wireLayer.innerHTML = "";
+    stopAudio();
+    currentStageIndex = index;
+    currentStage = STAGES[index];
+
+    removeAllComponents();
+    clearWires();
     buildBoard();
-    codeEditor.value = DEFAULT_CODE;
+    resetBoardPosition();
+    renderPalette();
+    buildCodeBlocks();
+
+    missionTextEl.innerHTML = currentStage.mission;
+    hintTextEl.textContent = currentStage.hintText;
+    codeEditor.value = currentStage.defaultCode;
     nicknameInput.value = "";
+    lastCursorPos = null;
     clearConsole();
     setStatus("대기중");
     shareBanner.classList.add("hidden");
+    renderStageTabs();
+    history.replaceState(null, "", location.pathname);
   }
+
+  function resetCurrentStage() { switchStage(currentStageIndex); }
 
   // ================= save / share (Firebase hook, localStorage fallback) =================
   // 실제 배포 시 아래 storage.save/load 내부에 Firebase Firestore 호출을 연결하세요.
@@ -1204,9 +1520,7 @@
           var id = generateId();
           localStorage.setItem("picowh_save_" + id, JSON.stringify(data));
           resolve(id);
-        } catch (e) {
-          reject(e);
-        }
+        } catch (e) { reject(e); }
       });
     },
     load: function (id) {
@@ -1215,9 +1529,7 @@
           var raw = localStorage.getItem("picowh_save_" + id);
           if (!raw) { reject(new Error("not-found")); return; }
           resolve(JSON.parse(raw));
-        } catch (e) {
-          reject(e);
-        }
+        } catch (e) { reject(e); }
       });
     }
   };
@@ -1230,16 +1542,27 @@
   }
 
   function saveWork() {
+    var componentsData = {};
+    currentStage.components.forEach(function (type) {
+      var comp = placed[type];
+      componentsData[type] = comp ? {
+        placed: true,
+        wires: {
+          signal: comp.wires.signal ? comp.wires.signal.pinEl.dataset.pin : null,
+          gnd: comp.wires.gnd ? comp.wires.gnd.pinEl.dataset.pin : null
+        }
+      } : { placed: false };
+    });
     var data = {
+      stageId: currentStage.id,
       code: codeEditor.value,
-      circuit: circuit,
-      ledPlaced: !!ledEl,
+      components: componentsData,
       nickname: nicknameInput.value.trim(),
       createdAt: Date.now()
     };
     setStatus("저장 중...");
     storage.save(data).then(function (id) {
-      var name = "LED-" + id.toUpperCase().slice(0, 4);
+      var name = "PICO-" + id.toUpperCase().slice(0, 4);
       var url = location.origin + location.pathname + "?id=" + id;
       history.replaceState(null, "", "?id=" + id);
       shareWorkName.textContent = (data.nickname || name) + " 저장됨:";
@@ -1254,36 +1577,36 @@
   }
 
   function restoreFromData(data) {
-    codeEditor.value = data.code || DEFAULT_CODE;
+    var stageIdx = STAGES.findIndex(function (s) { return s.id === data.stageId; });
+    if (stageIdx === -1) stageIdx = 0;
+
+    currentStageIndex = stageIdx;
+    currentStage = STAGES[stageIdx];
+    removeAllComponents();
+    clearWires();
+    buildBoard();
+    renderPalette();
+    buildCodeBlocks();
+    renderStageTabs();
+    missionTextEl.innerHTML = currentStage.mission;
+    hintTextEl.textContent = currentStage.hintText;
+
+    codeEditor.value = data.code || currentStage.defaultCode;
     nicknameInput.value = data.nickname || "";
-    if (data.ledPlaced) {
-      placeLed(70, 30);
-    }
-    if (data.circuit) {
-      if (data.circuit.signal === "GP15") {
-        connectByLabel("signal", "GP15");
-      }
-      if (data.circuit.gnd === "GND") {
-        connectByLabel("gnd", "GND");
-      }
+
+    if (data.components) {
+      currentStage.components.forEach(function (type) {
+        var c = data.components[type];
+        if (!c || !c.placed) return;
+        var pos = DEFAULT_POS[type] || { x: 260, y: 30 };
+        placeComponent(type, pos.x, pos.y);
+        if (c.wires) {
+          if (c.wires.signal) connectByLabel(type, "signal", c.wires.signal);
+          if (c.wires.gnd) connectByLabel(type, "gnd", c.wires.gnd);
+        }
+      });
     }
     log("공유된 작품을 불러왔어요.", "ok");
-  }
-
-  function connectByLabel(terminalType, pinLabel) {
-    if (!ledEl) return;
-    var termEl = ledEl.querySelector('.terminal-hit[data-terminal="' + terminalType + '"]');
-    var pinEl = pinEls[pinLabel] && pinEls[pinLabel][0];
-    if (!termEl || !pinEl) return;
-    var start = elCenter(termEl);
-    var end = elCenter(pinEl);
-    var perm = svgEl("path", { "class": "wire-perm", d: elbowPath(start.x, start.y, end.x, end.y) });
-    wireLayer.appendChild(perm);
-    termEl.classList.add("connected");
-    pinEl.classList.add("connected");
-    wires[terminalType] = { termEl: termEl, pinEl: pinEl, path: perm };
-    if (terminalType === "signal") circuit.signal = pinLabel;
-    else circuit.gnd = pinLabel;
   }
 
   function loadFromUrl() {
@@ -1298,9 +1621,13 @@
   }
 
   // ================= events =================
+  function trackCursorPos() { lastCursorPos = codeEditor.selectionStart; }
+  codeEditor.addEventListener("click", trackCursorPos);
+  codeEditor.addEventListener("keyup", trackCursorPos);
+  codeEditor.addEventListener("focus", trackCursorPos);
   runBtn.addEventListener("click", runProgram);
   stopBtn.addEventListener("click", stopProgram);
-  resetBtn.addEventListener("click", resetAll);
+  resetBtn.addEventListener("click", resetCurrentStage);
   gradeBtn.addEventListener("click", gradeCode);
   saveBtn.addEventListener("click", saveWork);
   copyShareBtn.addEventListener("click", function () {
@@ -1310,14 +1637,17 @@
   });
   restartBtn.addEventListener("click", function () {
     notFoundModal.classList.add("hidden");
-    history.replaceState(null, "", location.pathname);
-    resetAll();
+    switchStage(0);
   });
 
   // ================= init =================
+  renderStageTabs();
   buildBoard();
+  renderPalette();
   buildCodeBlocks();
-  codeEditor.value = DEFAULT_CODE;
+  missionTextEl.innerHTML = currentStage.mission;
+  hintTextEl.textContent = currentStage.hintText;
+  codeEditor.value = currentStage.defaultCode;
   clearConsole();
   loadFromUrl();
 })();
